@@ -64,3 +64,10 @@ echo "✅ Check your console logs for: '📥 Received lot.created' and '✅ Sync
 
 
 
+
+
+
+
+
+
+

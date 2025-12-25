@@ -11,37 +11,9 @@ type Notification = {
   read: boolean;
 };
 
-// Mock notifications - in production, these would come from an API
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "bid",
-    title: "New Bid Received",
-    message: "You received a bid on Premium SAF lot from SkyLink Air",
-    timestamp: "2 hours ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "contract",
-    title: "Contract Milestone Due",
-    message: "Delivery milestone for Q3 2025 contract due in 5 days",
-    timestamp: "1 day ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "tender",
-    title: "New Tender Available",
-    message: "Global Vista Airlines posted a new tender: Transatlantic Summer Blend",
-    timestamp: "2 days ago",
-    read: true,
-  },
-];
-
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

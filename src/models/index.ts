@@ -13,6 +13,13 @@ export { default as Product, type IProduct } from "./Product";
 export { default as ProductionBatch, type IProductionBatch } from "./ProductionBatch";
 export { default as Certificate, type ICertificate } from "./Certificate";
 
+// Airline models
+export { default as Inventory, type IInventoryItem } from "./Inventory";
+export { default as Claim, type IClaim } from "./Claim";
+
+
+
+
 
 
 

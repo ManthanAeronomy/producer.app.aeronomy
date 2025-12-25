@@ -21,8 +21,6 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const isBuyerRoute = pathname?.startsWith("/buyer");
-
   const producerShortcuts = [
     {
       label: "Producer Dashboard",
@@ -37,23 +35,6 @@ export function AccountMenu() {
       active: pathname?.startsWith("/marketplace"),
     },
   ];
-
-  const buyerShortcuts = [
-    {
-      label: "Airline Marketplace",
-      description: "Post lots & monitor responses",
-      href: "/buyer/marketplace",
-      active: pathname?.startsWith("/buyer/marketplace"),
-    },
-    {
-      label: "Producers Directory",
-      description: "Review SAF supplier profiles",
-      href: "/buyer/producers",
-      active: pathname?.startsWith("/buyer/producers"),
-    },
-  ];
-
-  const quickTargets = isBuyerRoute ? buyerShortcuts : producerShortcuts;
 
   const handleNavigate = (href: string) => {
     setOpen(false);
@@ -97,16 +78,13 @@ export function AccountMenu() {
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
               Account
-              <span className="ml-2 rounded-full bg-[#f3f2f2] px-2 py-0.5 text-[10px] font-bold uppercase text-[#706e6b]">
-                {isBuyerRoute ? "Airline View" : "Producer View"}
-              </span>
             </p>
             <p className="mt-1 text-sm font-semibold text-[#181818]">GreenSky Bio Fuels</p>
             <p className="text-xs text-[#706e6b]">producer@greensky.bio</p>
           </div>
 
           <div className="space-y-1">
-            {quickTargets.map((item) => (
+            {producerShortcuts.map((item) => (
               <button
                 key={item.href}
                 type="button"
@@ -126,25 +104,8 @@ export function AccountMenu() {
           <div className="my-4 h-px bg-[#f3f2f2]" />
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
-              Switch Persona
-            </p>
-            <button
-              type="button"
-              onClick={() => handleNavigate(isBuyerRoute ? "/dashboard" : "/buyer/marketplace")}
-              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                isBuyerRoute
-                  ? "border border-[#e5e5e5] text-[#181818] hover:bg-[#f8f9fa]"
-                  : "border border-[#0176d3]/30 bg-[#f5f9ff] text-[#014486] hover:border-[#0176d3] hover:bg-white"
-              }`}
-            >
-              <span>{isBuyerRoute ? "View as Producer" : "View as Airline"}</span>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
             <Link
-              href="/profile"
+              href="/settings"
               className="flex items-center justify-between rounded-lg border border-[#e5e5e5] px-3 py-2 text-sm font-semibold text-[#181818] transition-colors hover:bg-[#f8f9fa]"
               onClick={() => setOpen(false)}
             >

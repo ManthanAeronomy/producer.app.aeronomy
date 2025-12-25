@@ -13,13 +13,6 @@ interface User {
   lastActive?: string;
 }
 
-const demoUsers: User[] = [
-  { id: "u1", name: "Jane Doe", email: "jane.doe@greensky.bio", role: "admin", status: "active", lastActive: "2 hours ago" },
-  { id: "u2", name: "John Smith", email: "john.smith@greensky.bio", role: "finance", status: "active", lastActive: "1 day ago" },
-  { id: "u3", name: "Mike Johnson", email: "mike.johnson@greensky.bio", role: "operations", status: "active", lastActive: "3 hours ago" },
-  { id: "u4", name: "Sarah Williams", email: "sarah.w@greensky.bio", role: "sales", status: "invited" },
-];
-
 interface ApprovalRule {
   id: string;
   name: string;
@@ -29,37 +22,10 @@ interface ApprovalRule {
   enabled: boolean;
 }
 
-const demoApprovalRules: ApprovalRule[] = [
-  {
-    id: "ar1",
-    name: "High Value Bids",
-    trigger: "Contract value > €5M",
-    approvers: ["Jane Doe (Sales Director)", "John Smith (CFO)"],
-    mode: "sequential",
-    enabled: true,
-  },
-  {
-    id: "ar2",
-    name: "Low Margin Bids",
-    trigger: "Margin < 10%",
-    approvers: ["Jane Doe (Sales Director)"],
-    mode: "sequential",
-    enabled: true,
-  },
-  {
-    id: "ar3",
-    name: "New Customer",
-    trigger: "First contract with buyer",
-    approvers: ["Jane Doe (Sales Director)", "Mike Johnson (Operations)"],
-    mode: "parallel",
-    enabled: false,
-  },
-];
-
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
-  const [users] = useState(demoUsers);
-  const [approvalRules] = useState(demoApprovalRules);
+  const [users] = useState<User[]>([]);
+  const [approvalRules] = useState<ApprovalRule[]>([]);
 
   // Company Profile State
   const [companyName, setCompanyName] = useState("GreenSky Bio Fuels");
@@ -438,6 +404,13 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 
