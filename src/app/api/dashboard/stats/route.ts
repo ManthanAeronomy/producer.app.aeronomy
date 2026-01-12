@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       status: "active",
       "deliveries.status": "scheduled",
     })
-      .select("counterparty.companyName deliveries")
+      .select("buyer deliveries")
       .lean();
 
     const nextDeliveries: Array<{
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
         ?.filter((d) => d.status === "scheduled" && new Date(d.scheduledDate) >= now)
         .forEach((delivery) => {
           nextDeliveries.push({
-            counterparty: contract.counterparty?.companyName || "Unknown",
+            counterparty: contract.buyer || "Unknown",
             date: delivery.scheduledDate,
             volume: delivery.volume,
           });
