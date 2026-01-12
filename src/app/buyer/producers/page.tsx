@@ -54,7 +54,29 @@ interface Certificate {
   status: "valid" | "expiring" | "expired";
 }
 
+// Loading fallback for Suspense
+function LoadingFallback() {
+  return (
+    <div className="flex min-h-[400px] items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0176d3] border-t-transparent" />
+        <p className="text-sm text-[#706e6b]">Loading producer profile...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main page export wrapped in Suspense
 export default function BuyerProducerProfilePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <BuyerProducerProfileContent />
+    </Suspense>
+  );
+}
+
+// Inner component that uses useSearchParams
+function BuyerProducerProfileContent() {
   const searchParams = useSearchParams();
   const producerId = searchParams.get("producer") || "default";
 
