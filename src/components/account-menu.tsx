@@ -1,124 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export function AccountMenu() {
-  const [open, setOpen] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const producerShortcuts = [
-    {
-      label: "Producer Dashboard",
-      description: "Manage bids, contracts, compliance",
-      href: "/dashboard",
-      active: pathname?.startsWith("/dashboard"),
-    },
-    {
-      label: "Marketplace",
-      description: "Submit bids to live tenders",
-      href: "/marketplace",
-      active: pathname?.startsWith("/marketplace"),
-    },
-  ];
-
-  const handleNavigate = (href: string) => {
-    setOpen(false);
-    router.push(href);
-  };
-
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((previous) => !previous)}
-        className="flex items-center gap-2 rounded-full border border-transparent px-2 py-1.5 text-sm font-medium text-[#706e6b] transition-all hover:border-[#e5e5e5] hover:bg-[#f3f2f2] hover:text-[#181818]"
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f2f2] text-[#706e6b] transition-colors group-hover:bg-[#e5e5e5] group-hover:text-[#181818]">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
+    <>
+      <SignedIn>
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "h-9 w-9",
+              userButtonPopoverCard: "shadow-xl border border-[#e5e5e5]",
+            },
+          }}
+          afterSignOutUrl="/sign-in"
+        />
+      </SignedIn>
+      <SignedOut>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sign-in"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-[#706e6b] transition-colors hover:bg-[#f3f2f2] hover:text-[#181818]"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/sign-up"
+            className="rounded-lg bg-[#0176d3] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#015bb5]"
+          >
+            Sign Up
+          </Link>
         </div>
-        <svg
-          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-[#e5e5e5] bg-white p-4 shadow-2xl"
-        >
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
-              Account
-            </p>
-            <p className="mt-1 text-sm font-semibold text-[#181818]">GreenSky Bio Fuels</p>
-            <p className="text-xs text-[#706e6b]">producer@greensky.bio</p>
-          </div>
-
-          <div className="space-y-1">
-            {producerShortcuts.map((item) => (
-              <button
-                key={item.href}
-                type="button"
-                onClick={() => handleNavigate(item.href)}
-                className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                  item.active
-                    ? "border-[#0176d3] bg-[#f0f7ff] text-[#0176d3]"
-                    : "border-transparent text-[#181818] hover:border-[#e5e5e5] hover:bg-[#f8f9fa]"
-                }`}
-              >
-                <span className="font-semibold">{item.label}</span>
-                <p className="text-xs text-[#706e6b]">{item.description}</p>
-              </button>
-            ))}
-          </div>
-
-          <div className="my-4 h-px bg-[#f3f2f2]" />
-
-          <div className="space-y-2">
-            <Link
-              href="/settings"
-              className="flex items-center justify-between rounded-lg border border-[#e5e5e5] px-3 py-2 text-sm font-semibold text-[#181818] transition-colors hover:bg-[#f8f9fa]"
-              onClick={() => setOpen(false)}
-            >
-              <span>Account Settings</span>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
+      </SignedOut>
+    </>
   );
 }
-
-

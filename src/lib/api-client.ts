@@ -7,12 +7,13 @@ import type {
 } from "@/types/tender";
 
 const API_BASE = "/api";
+const EXTERNAL_LOTS_API = "http://localhost:3004";
 
 export const apiClient = {
-  // Tender endpoints
+  // Tender endpoints - fetches from external lots service for fresh data
   async getTenders(): Promise<Tender[]> {
     try {
-      const response = await fetch(`${API_BASE}/tenders`);
+      const response = await fetch(`${EXTERNAL_LOTS_API}/api/lots`);
       if (!response.ok) {
         // Try to get error message from response
         let errorMessage = "Failed to fetch tenders";
@@ -26,7 +27,8 @@ export const apiClient = {
         throw new Error(errorMessage);
       }
       const data = await response.json();
-      return data.tenders || [];
+      // Support both 'lots' and 'tenders' keys from the external API
+      return data.lots || data.tenders || [];
     } catch (error) {
       console.error("Error in getTenders:", error);
       throw error;

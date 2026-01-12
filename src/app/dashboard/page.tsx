@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
+import { AirportMap } from "@/components/airport-map";
 
 interface DashboardStats {
   actionRequired: {
@@ -74,32 +75,32 @@ export default function DashboardPage() {
   // Build action items from stats
   const actionItems = stats
     ? [
-        stats.actionRequired.rfqsClosingSoon > 0 && {
-          label: `${stats.actionRequired.rfqsClosingSoon} RFQs closing in 7 days`,
-          href: "/opportunities",
-          type: "urgent",
-        },
-        stats.actionRequired.bidsAwaitingApproval > 0 && {
-          label: `${stats.actionRequired.bidsAwaitingApproval} Bids awaiting your approval`,
-          href: "/bids?tab=pending",
-          type: "warning",
-        },
-        stats.actionRequired.certificatesExpiringSoon > 0 && {
-          label: `${stats.actionRequired.certificatesExpiringSoon} Certificate${stats.actionRequired.certificatesExpiringSoon > 1 ? "s" : ""} expiring in 30 days`,
-          href: "/compliance",
-          type: "warning",
-        },
-        stats.actionRequired.deliveriesDueThisWeek > 0 && {
-          label: `${stats.actionRequired.deliveriesDueThisWeek} Deliveries due this week`,
-          href: "/contracts",
-          type: "info",
-        },
-        stats.actionRequired.unallocatedBatches > 0 && {
-          label: `${stats.actionRequired.unallocatedBatches} Unallocated production batches`,
-          href: "/production",
-          type: "info",
-        },
-      ].filter(Boolean) as Array<{ label: string; href: string; type: string }>
+      stats.actionRequired.rfqsClosingSoon > 0 && {
+        label: `${stats.actionRequired.rfqsClosingSoon} RFQs closing in 7 days`,
+        href: "/opportunities",
+        type: "urgent",
+      },
+      stats.actionRequired.bidsAwaitingApproval > 0 && {
+        label: `${stats.actionRequired.bidsAwaitingApproval} Bids awaiting your approval`,
+        href: "/bids?tab=pending",
+        type: "warning",
+      },
+      stats.actionRequired.certificatesExpiringSoon > 0 && {
+        label: `${stats.actionRequired.certificatesExpiringSoon} Certificate${stats.actionRequired.certificatesExpiringSoon > 1 ? "s" : ""} expiring in 30 days`,
+        href: "/compliance",
+        type: "warning",
+      },
+      stats.actionRequired.deliveriesDueThisWeek > 0 && {
+        label: `${stats.actionRequired.deliveriesDueThisWeek} Deliveries due this week`,
+        href: "/contracts",
+        type: "info",
+      },
+      stats.actionRequired.unallocatedBatches > 0 && {
+        label: `${stats.actionRequired.unallocatedBatches} Unallocated production batches`,
+        href: "/production",
+        type: "info",
+      },
+    ].filter(Boolean) as Array<{ label: string; href: string; type: string }>
     : [];
 
   const visibleActions = showAllActions ? actionItems : actionItems.slice(0, 4);
@@ -108,13 +109,13 @@ export default function DashboardPage() {
   const currentYear = new Date().getFullYear();
   const capacityData = stats
     ? [currentYear, currentYear + 1, currentYear + 2].map((year) => {
-        const committed = stats.capacityStatus.commitmentsByYear[year] || 0;
-        const pending = stats.capacityStatus.pendingBidsByYear[year] || 0;
-        const total = stats.capacityStatus.totalAnnualCapacity || 50000;
-        const committedPercent = Math.round((committed / total) * 100);
-        const available = total - committed;
-        return { year, committed: committedPercent, available, pending };
-      })
+      const committed = stats.capacityStatus.commitmentsByYear[year] || 0;
+      const pending = stats.capacityStatus.pendingBidsByYear[year] || 0;
+      const total = stats.capacityStatus.totalAnnualCapacity || 50000;
+      const committedPercent = Math.round((committed / total) * 100);
+      const available = total - committed;
+      return { year, committed: committedPercent, available, pending };
+    })
     : [];
 
   // Format currency
@@ -227,6 +228,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Global SAF Activity Map - Full width */}
+      <AirportMap />
+
       {/* Widget Grid - 2 columns on large screens */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Widget 1: Action Required */}
@@ -260,15 +264,14 @@ export default function DashboardPage() {
                     >
                       <div className="flex items-center gap-3">
                         <span
-                          className={`h-2 w-2 rounded-full ${
-                            item.type === "urgent"
-                              ? "bg-[#c23934]"
-                              : item.type === "warning"
+                          className={`h-2 w-2 rounded-full ${item.type === "urgent"
+                            ? "bg-[#c23934]"
+                            : item.type === "warning"
                               ? "bg-[#ff9800]"
                               : item.type === "success"
-                              ? "bg-[#2e844a]"
-                              : "bg-[#0176d3]"
-                          }`}
+                                ? "bg-[#2e844a]"
+                                : "bg-[#0176d3]"
+                            }`}
                         />
                         <span className="text-sm font-medium text-[#181818]">{item.label}</span>
                       </div>
@@ -366,9 +369,8 @@ export default function DashboardPage() {
                   </div>
                   <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-[#e5e5e5]">
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        year.committed >= 80 ? "bg-[#c23934]" : year.committed >= 60 ? "bg-[#ff9800]" : "bg-[#0176d3]"
-                      }`}
+                      className={`h-full rounded-full transition-all ${year.committed >= 80 ? "bg-[#c23934]" : year.committed >= 60 ? "bg-[#ff9800]" : "bg-[#0176d3]"
+                        }`}
                       style={{ width: `${year.committed}%` }}
                     />
                   </div>
