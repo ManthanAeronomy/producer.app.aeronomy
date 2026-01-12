@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -286,8 +286,8 @@ export default function BuyerProducerProfilePage() {
                       {check.status === "verified"
                         ? "Verified"
                         : check.status === "pending"
-                        ? "Expiring"
-                        : "Expired"}
+                          ? "Expiring"
+                          : "Expired"}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-[#3e3e3c]">{check.summary}</p>
