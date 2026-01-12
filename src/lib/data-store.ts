@@ -12,7 +12,7 @@ import mongoose from "mongoose";
 
 // Helper to convert ILot to Tender format
 const lotToTender = (lot: ILot) => ({
-  id: lot._id.toString(),
+  id: String(lot._id),
   airline: lot.airline,
   lotName: lot.lotName,
   volume: lot.volume,
@@ -79,7 +79,7 @@ export const dataStore = {
     await connectDB();
     const bids = await Bid.find().sort({ submittedAt: -1 });
     return bids.map((bid) => ({
-      id: bid._id.toString(),
+      id: String(bid._id),
       tenderId: bid.tenderId.toString(),
       volume: bid.volume,
       price: bid.price,
@@ -95,7 +95,7 @@ export const dataStore = {
     }
     const bids = await Bid.find({ tenderId }).sort({ submittedAt: -1 });
     return bids.map((bid) => ({
-      id: bid._id.toString(),
+      id: String(bid._id),
       tenderId: bid.tenderId.toString(),
       volume: bid.volume,
       price: bid.price,
@@ -119,7 +119,7 @@ export const dataStore = {
       submittedAt: new Date(),
     });
     return {
-      id: bid._id.toString(),
+      id: String(bid._id),
       tenderId: bid.tenderId.toString(),
       volume: bid.volume,
       price: bid.price,
