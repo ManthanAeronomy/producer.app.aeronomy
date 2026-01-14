@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type TabType = "company" | "users" | "approvals" | "notifications";
 
@@ -22,21 +22,101 @@ interface ApprovalRule {
   enabled: boolean;
 }
 
+interface OrganizationSettings {
+  organizationId: string;
+  companyName: string;
+  legalName: string;
+  registrationNumber: string;
+  vatNumber: string;
+  address: string;
+  website: string;
+  primaryContact: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>("company");
   const [users] = useState<User[]>([]);
   const [approvalRules] = useState<ApprovalRule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Company Profile State
-  const [companyName, setCompanyName] = useState("GreenSky Bio Fuels");
-  const [legalName, setLegalName] = useState("GreenSky Bio Fuels B.V.");
-  const [registrationNumber, setRegistrationNumber] = useState("NL-12345678");
-  const [vatNumber, setVatNumber] = useState("NL123456789B01");
-  const [address, setAddress] = useState("Europoort 123, 3198 LG Rotterdam, Netherlands");
-  const [website, setWebsite] = useState("https://greensky.bio");
-  const [primaryContact, setPrimaryContact] = useState("Jane Doe");
-  const [primaryEmail, setPrimaryEmail] = useState("contact@greensky.bio");
-  const [primaryPhone, setPrimaryPhone] = useState("+31 10 123 4567");
+  const [companyName, setCompanyName] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
+  const [primaryContact, setPrimaryContact] = useState("");
+  const [primaryEmail, setPrimaryEmail] = useState("");
+  const [primaryPhone, setPrimaryPhone] = useState("");
+
+  // Fetch organization settings on mount
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const response = await fetch("/api/organization-settings");
+        if (response.ok) {
+          const data: OrganizationSettings = await response.json();
+          setCompanyName(data.companyName || "");
+          setLegalName(data.legalName || "");
+          setRegistrationNumber(data.registrationNumber || "");
+          setVatNumber(data.vatNumber || "");
+          setAddress(data.address || "");
+          setWebsite(data.website || "");
+          setPrimaryContact(data.primaryContact?.name || "");
+          setPrimaryEmail(data.primaryContact?.email || "");
+          setPrimaryPhone(data.primaryContact?.phone || "");
+        }
+      } catch (error) {
+        console.error("Failed to fetch settings:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  // Save organization settings
+  async function handleSaveSettings() {
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      const response = await fetch("/api/organization-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          legalName,
+          registrationNumber,
+          vatNumber,
+          address,
+          website,
+          primaryContact: {
+            name: primaryContact,
+            email: primaryEmail,
+            phone: primaryPhone,
+          },
+        }),
+      });
+      if (response.ok) {
+        setSaveMessage({ type: "success", text: "Settings saved successfully!" });
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        throw new Error("Failed to save");
+      }
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      setSaveMessage({ type: "error", text: "Failed to save settings. Please try again." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   const getRoleBadge = (role: User["role"]) => {
     const styles = {
@@ -88,11 +168,10 @@ export default function SettingsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "text-[#0176d3]"
-                  : "text-[#706e6b] hover:text-[#181818]"
-              }`}
+              className={`relative px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
+                ? "text-[#0176d3]"
+                : "text-[#706e6b] hover:text-[#181818]"
+                }`}
             >
               {tab.label}
               {activeTab === tab.id && (
@@ -192,12 +271,28 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {saveMessage && (
+            <div className={`mt-4 rounded-lg px-4 py-3 text-sm font-medium ${saveMessage.type === "success"
+                ? "bg-[#e8f5e9] text-[#2e844a]"
+                : "bg-[#ffebee] text-[#c62828]"
+              }`}>
+              {saveMessage.text}
+            </div>
+          )}
+
           <div className="mt-8 flex justify-end gap-3">
-            <button className="rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm font-semibold text-[#706e6b] hover:bg-[#f3f2f2]">
+            <button
+              className="rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm font-semibold text-[#706e6b] hover:bg-[#f3f2f2]"
+              disabled={isSaving}
+            >
               Cancel
             </button>
-            <button className="rounded-lg bg-[#0176d3] px-4 py-2 text-sm font-semibold text-white hover:bg-[#014486]">
-              Save Changes
+            <button
+              onClick={handleSaveSettings}
+              disabled={isSaving || isLoading}
+              className="rounded-lg bg-[#0176d3] px-4 py-2 text-sm font-semibold text-white hover:bg-[#014486] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>
@@ -291,20 +386,18 @@ export default function SettingsPage() {
             {approvalRules.map((rule) => (
               <div
                 key={rule.id}
-                className={`rounded-lg border p-5 ${
-                  rule.enabled ? "border-[#e5e5e5] bg-white" : "border-[#e5e5e5] bg-[#f8f9fa]"
-                }`}
+                className={`rounded-lg border p-5 ${rule.enabled ? "border-[#e5e5e5] bg-white" : "border-[#e5e5e5] bg-[#f8f9fa]"
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-3">
                       <h3 className="font-semibold text-[#181818]">{rule.name}</h3>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          rule.enabled
-                            ? "bg-[#e8f5e9] text-[#2e844a]"
-                            : "bg-[#f3f2f2] text-[#706e6b]"
-                        }`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${rule.enabled
+                          ? "bg-[#e8f5e9] text-[#2e844a]"
+                          : "bg-[#f3f2f2] text-[#706e6b]"
+                          }`}
                       >
                         {rule.enabled ? "Active" : "Disabled"}
                       </span>
