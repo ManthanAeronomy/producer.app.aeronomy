@@ -1,43 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
-import OrganizationSettings, {
-    IOrganizationSettings,
-} from "@/models/OrganizationSettings";
-
-// Default organization settings (used when no settings exist)
-const DEFAULT_SETTINGS = {
-    organizationId: "default",
-    companyName: "GreenSky Bio Fuels",
-    legalName: "GreenSky Bio Fuels B.V.",
-    registrationNumber: "NL-12345678",
-    vatNumber: "NL123456789B01",
-    address: "Europoort 123, 3198 LG Rotterdam, Netherlands",
-    website: "https://greensky.bio",
-    primaryContact: {
-        name: "Jane Doe",
-        email: "contact@greensky.bio",
-        phone: "+31 10 123 4567",
-    },
-};
+import OrganizationSettings from "@/models/OrganizationSettings";
 
 // Validate API key for cross-origin requests only
 // Internal requests (same origin) are allowed without API key
 function validateApiKey(request: NextRequest): boolean {
     const origin = request.headers.get("origin");
     const referer = request.headers.get("referer");
+    const host = request.headers.get("host") || "";
 
-    // Allow requests from the same origin (internal requests)
-    // Internal requests won't have an origin header or will match our host
-    if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    // Check if request is from the same domain (internal request)
+    const isLocalhost = origin?.includes("localhost") || origin?.includes("127.0.0.1") ||
+        host.includes("localhost") || host.includes("127.0.0.1");
+    const isSameDomain = origin?.includes("aeronomy.co") || host.includes("aeronomy.co");
+
+    // Allow internal requests (no origin header, localhost, or same production domain)
+    if (!origin || isLocalhost || isSameDomain) {
         return true;
     }
 
     // Allow requests from the same app (check referer)
-    if (referer && (referer.includes("localhost") || referer.includes("127.0.0.1"))) {
+    if (referer && (referer.includes("localhost") || referer.includes("127.0.0.1") || referer.includes("aeronomy.co"))) {
         return true;
     }
 
-    // For cross-origin requests, require API key
+    // For cross-origin requests from other domains, require API key
     const apiKey = request.headers.get("x-api-key");
     const expectedApiKey = process.env.ORGANIZATION_API_KEY;
 
@@ -66,13 +53,25 @@ export async function GET(request: NextRequest) {
         const organizationId =
             request.nextUrl.searchParams.get("organizationId") || "default";
 
-        let settings = await OrganizationSettings.findOne({ organizationId });
+        const settings = await OrganizationSettings.findOne({ organizationId });
 
-        // If no settings exist, create default settings
+        // If no settings exist, return empty data (user needs to complete onboarding)
         if (!settings) {
-            settings = await OrganizationSettings.create({
-                ...DEFAULT_SETTINGS,
+            return NextResponse.json({
                 organizationId,
+                companyName: "",
+                legalName: "",
+                registrationNumber: "",
+                vatNumber: "",
+                address: "",
+                website: "",
+                onboardingComplete: false,
+                primaryContact: {
+                    name: "",
+                    email: "",
+                    phone: "",
+                },
+                updatedAt: null,
             });
         }
 
