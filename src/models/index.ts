@@ -17,6 +17,9 @@ export { default as Certificate, type ICertificate } from "./Certificate";
 export { default as Inventory, type IInventoryItem } from "./Inventory";
 export { default as Claim, type IClaim } from "./Claim";
 
+// Organization settings
+export { default as OrganizationSettings, type IOrganizationSettings } from "./OrganizationSettings";
+
 
 
 
