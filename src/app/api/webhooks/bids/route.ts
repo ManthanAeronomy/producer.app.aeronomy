@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import ProducerBid from "@/models/ProducerBid";
 import Contract from "@/models/Contract";
 import Notification from "@/models/Notification";
+import { validateInterDashboardAuth } from "@/lib/jwt";
 
 /**
  * Webhook endpoint to receive bid status updates from Buyer Dashboard
@@ -11,17 +12,18 @@ import Notification from "@/models/Notification";
  * - bid.accepted: Update bid status to "won", optionally create contract
  * - bid.rejected: Update bid status to "lost"
  * - bid.counter_offer: Handle counter offer logic
+ * 
+ * Authentication: Supports JWT tokens and API key fallback
  */
 export async function POST(request: NextRequest) {
     try {
-        // Verify webhook secret
+        // Verify webhook authentication (JWT or API key)
         const authHeader = request.headers.get("authorization");
         const xApiKey = request.headers.get("x-api-key");
-        const expectedSecret = process.env.BUYER_WEBHOOK_SECRET || "dev-webhook-secret-456";
 
-        const token = authHeader?.replace("Bearer ", "") || xApiKey;
-        if (token !== expectedSecret) {
-            console.warn("❌ Unauthorized webhook request");
+        const authResult = validateInterDashboardAuth(authHeader, xApiKey);
+        if (!authResult.valid) {
+            console.warn("❌ Unauthorized webhook request:", authResult.error);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { signInterDashboardToken } from "@/lib/jwt";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
  * 
  * Server-side proxy to submit bids to the Buyer Dashboard.
  * This avoids CORS issues by making the request server-to-server.
+ * Uses JWT tokens for secure authentication.
  */
 export async function POST(request: NextRequest) {
     try {
@@ -29,6 +31,13 @@ export async function POST(request: NextRequest) {
             process.env.MARKETPLACE_BASE_URL ||
             "http://localhost:3004";
 
+        // Generate JWT token for secure authentication
+        const jwtToken = signInterDashboardToken({
+            action: "submit_bid",
+            userId: userId,
+        });
+
+        // Also keep API key as fallback for backward compatibility
         const apiKey =
             process.env.MARKETPLACE_API_KEY ||
             process.env.NEXT_PUBLIC_BUYER_API_KEY ||
@@ -58,12 +67,14 @@ export async function POST(request: NextRequest) {
             status: body.status || "pending",
         };
 
-        // Make server-to-server request (no CORS issues)
+        // Make server-to-server request with JWT authentication
         const response = await fetch(`${buyerDashboardUrl}/api/bids`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-API-Key": apiKey,
+                "Authorization": `Bearer ${jwtToken}`, // JWT for new secure auth
+                "X-API-Key": apiKey, // Fallback for backward compatibility
+                "X-Source": "producer-dashboard",
             },
             body: JSON.stringify(payload),
         });
