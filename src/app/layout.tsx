@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Aeronomy SAF Dashboard",
   description:
     "Aeronomy dashboard for SAF producers to review airline tenders and submit competitive bids.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
