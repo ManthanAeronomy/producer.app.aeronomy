@@ -16,7 +16,7 @@ import {
 
 async function runTests() {
   console.log("🚀 Starting Buyer Dashboard API Tests\n");
-  console.log("=" .repeat(60));
+  console.log("=".repeat(60));
 
   // Test 1: Check connection
   console.log("\n📡 Test 1: Checking Buyer Dashboard connection...");
@@ -38,6 +38,7 @@ async function runTests() {
 
   const testBid = {
     lotId: `test_${Date.now()}`,
+    clerkUserId: "test_clerk_user_id", // Required field for BidSubmissionData
     producerName: "Test Producer (Delete Me)",
     producerEmail: "test@example.com",
     volume: 1000,
