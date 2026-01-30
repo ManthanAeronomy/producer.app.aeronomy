@@ -6,6 +6,9 @@ const isPublicRoute = createRouteMatcher([
     "/sign-in(.*)",
     "/sign-up(.*)",
     "/api/public(.*)",
+    "/api/webhooks(.*)",  // Allow webhook endpoints for external integrations
+    "/api/tenders(.*)",   // Allow tenders API for external access
+    "/api/notifications(.*)",  // Allow notifications API for authenticated users fetching via client
     "/marketplace",
     "/onboarding",
     "/api/onboarding-status",

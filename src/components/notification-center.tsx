@@ -1,24 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 type Notification = {
-  id: string;
+  _id: string;
   type: "bid" | "contract" | "tender" | "info";
   title: string;
   message: string;
-  timestamp: string;
+  createdAt: string;
   read: boolean;
+  relatedId?: string;
+  relatedType?: string;
 };
 
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await fetch("/api/notifications?limit=20");
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }, []);
+
+  // Fetch notifications on mount and poll every 30 seconds
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Also fetch when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen, fetchNotifications]);
+
+  const markAllAsRead = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      if (response.ok) {
+        setNotifications(notifications.map((n) => ({ ...n, read: true })));
+      }
+    } catch (error) {
+      console.error("Failed to mark notifications as read:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimestamp = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   const getNotificationIcon = (type: Notification["type"]) => {
@@ -35,7 +94,7 @@ export function NotificationCenter() {
         return (
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff9800]/10">
             <svg className="h-4 w-4 text-[#ff9800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
         );
@@ -77,7 +136,7 @@ export function NotificationCenter() {
           </svg>
           {unreadCount > 0 && (
             <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#c23934] text-[10px] font-bold text-white">
-              {unreadCount}
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </div>
@@ -110,9 +169,10 @@ export function NotificationCenter() {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs font-medium text-[#0176d3] transition-colors hover:text-[#014486]"
+                  disabled={loading}
+                  className="text-xs font-medium text-[#0176d3] transition-colors hover:text-[#014486] disabled:opacity-50"
                 >
-                  Mark all as read
+                  {loading ? "..." : "Mark all as read"}
                 </button>
               )}
             </div>
@@ -132,10 +192,9 @@ export function NotificationCenter() {
               ) : (
                 notifications.map((notification) => (
                   <div
-                    key={notification.id}
-                    className={`border-b border-[#f3f2f2] px-4 py-3 transition-colors hover:bg-[#f8f9fa] ${
-                      !notification.read ? "bg-[#f8f9fa]" : ""
-                    }`}
+                    key={notification._id}
+                    className={`border-b border-[#f3f2f2] px-4 py-3 transition-colors hover:bg-[#f8f9fa] ${!notification.read ? "bg-[#f0f7ff]" : ""
+                      }`}
                   >
                     <div className="flex gap-3">
                       {getNotificationIcon(notification.type)}
@@ -148,14 +207,14 @@ export function NotificationCenter() {
                             <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#0176d3]" />
                           )}
                         </div>
-                        <p className="mt-1 text-xs text-[#706e6b]">
+                        <p className="mt-1 text-xs text-[#706e6b] line-clamp-2">
                           {notification.message}
                         </p>
                         <p className="mt-1.5 flex items-center gap-1 text-xs text-[#706e6b]">
                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {notification.timestamp}
+                          {formatTimestamp(notification.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -167,7 +226,13 @@ export function NotificationCenter() {
             {/* Footer */}
             {notifications.length > 0 && (
               <div className="border-t border-[#e5e5e5] px-4 py-2.5 text-center">
-                <button className="text-xs font-medium text-[#0176d3] transition-colors hover:text-[#014486]">
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    // Could navigate to a notifications page
+                  }}
+                  className="text-xs font-medium text-[#0176d3] transition-colors hover:text-[#014486]"
+                >
                   View all notifications
                 </button>
               </div>
@@ -178,4 +243,3 @@ export function NotificationCenter() {
     </div>
   );
 }
-

@@ -7,16 +7,16 @@ import type {
 } from "@/types/tender";
 
 const API_BASE = "/api";
-const EXTERNAL_LOTS_API = "http://localhost:3004";
 
 export const apiClient = {
-  // Tender endpoints - fetches from external lots service for fresh data
+  // Tender endpoints - fetches via local proxy to avoid CORS
   async getTenders(): Promise<Tender[]> {
     try {
-      const response = await fetch(`${EXTERNAL_LOTS_API}/api/lots`);
+      // Use local proxy endpoint to avoid CORS issues
+      const response = await fetch(`${API_BASE}/marketplace/lots?status=published`);
       if (!response.ok) {
         // Try to get error message from response
-        let errorMessage = "Failed to fetch tenders";
+        let errorMessage = "Failed to fetch lots from marketplace";
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
@@ -27,8 +27,22 @@ export const apiClient = {
         throw new Error(errorMessage);
       }
       const data = await response.json();
-      // Support both 'lots' and 'tenders' keys from the external API
-      return data.lots || data.tenders || [];
+      // Transform lots from buyer format to tender format
+      const lots = data.lots || [];
+      return lots.map((lot: any) => ({
+        id: lot._id,
+        airline: lot.orgId?.name || lot.airlineName || lot.organization?.name || "Unknown Airline",
+        lotName: lot.title || "Untitled Lot",
+        volume: lot.volume?.amount || 0,
+        volumeUnit: lot.volume?.unit === "gallons" ? "gal" : "MT",
+        pricePerUnit: lot.pricing?.pricePerUnit || 0,
+        currency: lot.pricing?.currency || "USD",
+        ciScore: lot.compliance?.sustainabilityScore || lot.compliance?.ghgReduction || 0,
+        location: lot.delivery?.deliveryLocation || "TBD",
+        deliveryWindow: lot.delivery?.deliveryDate ? new Date(lot.delivery.deliveryDate).toLocaleDateString() : "TBD",
+        longTerm: lot.type === "contract" || lot.type === "forward" || false,
+        postedOn: lot.publishedAt || lot.createdAt || new Date().toISOString().split("T")[0],
+      }));
     } catch (error) {
       console.error("Error in getTenders:", error);
       throw error;

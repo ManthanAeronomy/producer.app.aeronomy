@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
       const lotId = lot._id || lot.id;
       const volumeAmount = lot.volume?.amount || lot.volume || 0;
       const volumeUnit = lot.volume?.unit || "MT";
-      
+
       transformedLot = {
         id: lotId,
-        airline: lot.airlineName || lot.airline || "Unknown Airline",
+        airline: lot.orgId?.name || lot.airlineName || lot.airline || "Unknown Airline",
         lotName: lot.title || lot.lotName || "Untitled Lot",
         volume: volumeAmount,
         volumeUnit: (volumeUnit === "gal" || volumeUnit === "gallon" ? "gal" : "MT") as "MT" | "gal",
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         // Use the lot ID from transformed lot, or generate new ObjectId
         const lotId = transformedLot.id;
         const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(lotId);
-        
+
         await Lot.findOneAndUpdate(
           isValidObjectId ? { _id: lotId } : { lotName: transformedLot.lotName, airline: transformedLot.airline },
           lotData,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         // Mark as closed
         const deleteLotId = transformedLot.id;
         const isValidDeleteId = /^[0-9a-fA-F]{24}$/.test(deleteLotId);
-        
+
         if (isValidDeleteId) {
           await Lot.findByIdAndUpdate(deleteLotId, {
             status: "closed",

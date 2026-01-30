@@ -7,6 +7,7 @@
 
 export interface BidSubmissionData {
   lotId: string;
+  clerkUserId: string;  // REQUIRED: Clerk userId of the producer user (shared Clerk instance)
   producerName: string;
   producerEmail: string;
   volume: number;
@@ -18,7 +19,7 @@ export interface BidSubmissionData {
   paymentTerms?: string;
   deliveryDate?: string;
   deliveryLocation?: string;
-  externalBidId?: string;
+  externalBidId?: string;  // ProducerBid._id for tracking
   status?: "pending" | "accepted" | "rejected" | "withdrawn";
 }
 
@@ -60,6 +61,7 @@ export async function sendBidToBuyerDashboard(
     // Validate required fields
     const requiredFields: (keyof BidSubmissionData)[] = [
       "lotId",
+      "clerkUserId",  // REQUIRED: Must be Clerk userId (shared Clerk instance)
       "producerName",
       "producerEmail",
       "volume",
@@ -82,18 +84,24 @@ export async function sendBidToBuyerDashboard(
     const totalPrice =
       bidData.totalPrice || bidData.volume * bidData.pricePerUnit;
 
-    // Prepare payload
+    // Prepare payload matching Buyer Dashboard API format
+    // CRITICAL: bidderId must be Clerk userId (shared Clerk instance)
+    // Buyer portal uses resolveMongoUserId(bidderId) to sync Clerk user to MongoDB
     const payload = {
       lotId: bidData.lotId,
-      producerName: bidData.producerName,
-      producerEmail: bidData.producerEmail,
-      volume: bidData.volume,
-      volumeUnit: bidData.volumeUnit || "MT",
-      pricePerUnit: bidData.pricePerUnit,
-      currency: bidData.currency || "USD",
-      totalPrice,
-      notes: bidData.notes,
-      paymentTerms: bidData.paymentTerms || "",
+      bidderId: bidData.clerkUserId,  // FIXED: Use Clerk userId, not externalBidId
+      bidderName: bidData.producerName,
+      bidderEmail: bidData.producerEmail,
+      volume: {
+        amount: bidData.volume,
+        unit: bidData.volumeUnit === "MT" ? "MT" : "gallons",
+      },
+      pricing: {
+        price: totalPrice,
+        currency: bidData.currency || "USD",
+        pricePerUnit: bidData.pricePerUnit,
+      },
+      message: bidData.notes,
       deliveryDate: bidData.deliveryDate || "",
       deliveryLocation: bidData.deliveryLocation || "",
       externalBidId: bidData.externalBidId || `bid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -109,7 +117,7 @@ export async function sendBidToBuyerDashboard(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        "X-API-Key": apiKey,
       },
       body: JSON.stringify(payload),
     });
@@ -321,6 +329,70 @@ export async function updateBidInBuyerDashboard(
 }
 
 /**
+ * Accept a counter-offer from buyer
+ * 
+ * @param bidId - Buyer's bid ID (from webhook payload)
+ * @param acceptData - Acceptance confirmation
+ * @returns Promise with success status
+ */
+export async function acceptCounterBid(
+  bidId: string,
+  acceptData: {
+    accept: boolean;
+    message?: string;
+  }
+): Promise<BidSubmissionResult> {
+  const { url, apiKey } = getBuyerDashboardConfig();
+
+  try {
+    console.log(`🔄 Accepting counter-bid ${bidId} on Buyer Dashboard`);
+
+    const response = await fetch(`${url}/api/bids/${bidId}/accept-counter`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+      },
+      body: JSON.stringify(acceptData),
+    });
+
+    if (!response.ok) {
+      let errorMessage = `Failed to accept counter-bid (${response.status})`;
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        errorMessage = `${errorMessage}: ${response.statusText}`;
+      }
+
+      console.error(`❌ Counter-bid acceptance failed: ${errorMessage}`);
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+
+    const result = await response.json();
+
+    console.log(`✅ Counter-bid ${bidId} accepted successfully`);
+
+    return {
+      success: true,
+      bid: result.bid,
+    };
+  } catch (error: any) {
+    console.error("❌ Error accepting counter-bid:", error);
+
+    return {
+      success: false,
+      error: error.message || "Network error: Could not connect to Buyer Dashboard",
+    };
+  }
+}
+
+/**
  * Test the Buyer Dashboard API connection with a mock bid
  * Useful for debugging and setup verification
  * 
@@ -344,8 +416,10 @@ export async function testBuyerDashboardAPI(): Promise<{
   }
 
   // Try to submit a test bid
+  // NOTE: Test bid requires a valid Clerk userId - this test may fail if not provided
   const testBid: BidSubmissionData = {
     lotId: `test_${Date.now()}`,
+    clerkUserId: `test_user_${Date.now()}`,  // Test userId (will fail on buyer portal if not real Clerk user)
     producerName: "Test Producer",
     producerEmail: "test@example.com",
     volume: 1000,

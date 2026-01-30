@@ -1,9 +1,9 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useMemo, useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import type { Tender } from "@/types/tender";
 import { apiClient } from "@/lib/api-client";
-import { sendBidToBuyerDashboard } from "@/lib/webhooks/buyer-bid-service";
 
 type BidDraft = {
   volume: string;
@@ -24,6 +24,7 @@ const formatCurrency = (value: number, currency: Tender["currency"]) =>
   }).format(value);
 
 export default function MarketplacePage() {
+  const { userId } = useAuth();  // Get Clerk userId (shared Clerk instance)
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,35 +104,49 @@ export default function MarketplacePage() {
 
   const handleDraftChange =
     (field: keyof BidDraft) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setBidDraft((previous) => ({
-        ...previous,
-        [field]: event.target.value,
-      }));
-    };
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setBidDraft((previous) => ({
+          ...previous,
+          [field]: event.target.value,
+        }));
+      };
 
   const handleBidSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!activeTender) return;
 
+    // Validate user is logged in (required for Clerk userId)
+    if (!userId) {
+      setError("You must be logged in to submit a bid");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
 
-      // Send bid to buyer dashboard using the service
-      const result = await sendBidToBuyerDashboard({
-        lotId: activeTender.id,
-        producerName: bidDraft.producerName,
-        producerEmail: bidDraft.producerEmail,
-        volume: Number(bidDraft.volume),
-        volumeUnit: activeTender.volumeUnit,
-        pricePerUnit: Number(bidDraft.price),
-        currency: activeTender.currency,
-        notes: bidDraft.notes,
-        status: "pending",
+      // Submit bid through server-side proxy to avoid CORS issues
+      const response = await fetch("/api/bids/submit-to-buyer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          lotId: activeTender.id,
+          producerName: bidDraft.producerName,
+          producerEmail: bidDraft.producerEmail,
+          volume: Number(bidDraft.volume),
+          volumeUnit: activeTender.volumeUnit,
+          pricePerUnit: Number(bidDraft.price),
+          currency: activeTender.currency,
+          notes: bidDraft.notes,
+          status: "pending",
+        }),
       });
 
-      if (!result.success) {
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
         throw new Error(result.error || "Failed to submit bid");
       }
 
@@ -169,7 +184,7 @@ export default function MarketplacePage() {
           </span>
         </div>
       </div>
-      
+
       {/* Alerts */}
       {error && (
         <div className="rounded-lg border-l-4 border-[#c23934] bg-[#fef7f7] px-5 py-4 shadow-sm">
@@ -181,7 +196,7 @@ export default function MarketplacePage() {
           </div>
         </div>
       )}
-      
+
       {confirmation && (
         <div className="rounded-lg border-l-4 border-[#2e844a] bg-[#f7fcf7] px-5 py-4 shadow-sm">
           <div className="flex items-start gap-3">
@@ -215,7 +230,7 @@ export default function MarketplacePage() {
             Across {tenders.length} tenders
           </p>
         </div>
-        
+
         <div className="rounded-lg border border-[#e5e5e5] bg-gradient-to-br from-white to-[#f8f9fa] p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#2e844a]/10">
@@ -240,7 +255,7 @@ export default function MarketplacePage() {
             Indicative across all open lots
           </p>
         </div>
-        
+
         <div className="rounded-lg border border-[#e5e5e5] bg-gradient-to-br from-white to-[#f8f9fa] p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#ff9800]/10">
@@ -313,11 +328,10 @@ export default function MarketplacePage() {
                       </p>
                     </div>
                     <span
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        tender.longTerm
-                          ? "bg-[#e8f5e9] text-[#2e844a]"
-                          : "bg-[#fff3e0] text-[#e65100]"
-                      }`}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${tender.longTerm
+                        ? "bg-[#e8f5e9] text-[#2e844a]"
+                        : "bg-[#fff3e0] text-[#e65100]"
+                        }`}
                     >
                       {tender.longTerm ? (
                         <>
@@ -352,7 +366,7 @@ export default function MarketplacePage() {
                         {formatVolume(tender.volume, tender.volumeUnit)}
                       </dd>
                     </div>
-                    
+
                     <div className="rounded-lg bg-[#f8f9fa] p-3">
                       <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +381,7 @@ export default function MarketplacePage() {
                         </span>
                       </dd>
                     </div>
-                    
+
                     <div className="rounded-lg bg-[#f8f9fa] p-3">
                       <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,7 +394,7 @@ export default function MarketplacePage() {
                         <span className="text-sm font-medium text-[#706e6b]"> gCO₂e/MJ</span>
                       </dd>
                     </div>
-                    
+
                     <div className="rounded-lg bg-[#f8f9fa] p-3">
                       <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +407,7 @@ export default function MarketplacePage() {
                       </dd>
                     </div>
                   </dl>
-                  
+
                   <div className="mt-4 rounded-lg bg-[#f8f9fa] p-3">
                     <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[#706e6b]">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

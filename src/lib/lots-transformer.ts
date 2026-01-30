@@ -5,6 +5,10 @@ interface LotFromAPI {
   _id: string;
   title: string;
   airlineName?: string;
+  orgId?: {
+    name?: string;
+    branding?: any;
+  };
   volume: {
     amount: number;
     unit: string;
@@ -50,7 +54,7 @@ export function transformLotToTender(lot: LotFromAPI): Tender {
   const isLongTerm = lot.type === "contract" || lot.type === "forward";
 
   // Get price per unit (use pricing.pricePerUnit if available, otherwise calculate)
-  const pricePerUnit = lot.pricing.pricePerUnit || 
+  const pricePerUnit = lot.pricing.pricePerUnit ||
     (lot.volume.amount > 0 ? lot.pricing.price / lot.volume.amount : lot.pricing.price);
 
   // Format delivery window
@@ -59,13 +63,13 @@ export function transformLotToTender(lot: LotFromAPI): Tender {
       return lot.delivery.deliveryWindow;
     }
     if (lot.delivery?.deliveryDate) {
-      const date = typeof lot.delivery.deliveryDate === "string" 
-        ? new Date(lot.delivery.deliveryDate) 
+      const date = typeof lot.delivery.deliveryDate === "string"
+        ? new Date(lot.delivery.deliveryDate)
         : lot.delivery.deliveryDate;
-      return date.toLocaleDateString("en-US", { 
-        year: "numeric", 
-        month: "long", 
-        day: "numeric" 
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
       });
     }
     return "TBD";
@@ -75,15 +79,15 @@ export function transformLotToTender(lot: LotFromAPI): Tender {
   const formatPostedDate = (): string => {
     const date = lot.publishedAt || lot.createdAt;
     if (!date) return new Date().toISOString().split("T")[0];
-    
+
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return dateObj.toISOString().split("T")[0];
   };
 
   // Get CI score (use sustainability score or GHG reduction, default to 0)
-  const ciScore = lot.compliance?.sustainabilityScore || 
-                  lot.compliance?.ghgReduction || 
-                  0;
+  const ciScore = lot.compliance?.sustainabilityScore ||
+    lot.compliance?.ghgReduction ||
+    0;
 
   // Get location
   const location = lot.delivery?.deliveryLocation || "TBD";
@@ -95,7 +99,7 @@ export function transformLotToTender(lot: LotFromAPI): Tender {
 
   return {
     id: lot._id.toString(),
-    airline: lot.airlineName || "Unknown Airline",
+    airline: lot.orgId?.name || lot.airlineName || "Unknown Airline",
     lotName: lot.title,
     volume: lot.volume.amount || 0,
     volumeUnit: convertVolumeUnit(lot.volume.unit || "MT"),
@@ -122,7 +126,7 @@ export async function fetchLotsFrom3004(orgId?: string): Promise<Tender[]> {
     // Determine endpoint and headers
     const marketplaceBaseUrl = process.env.MARKETPLACE_BASE_URL || "http://localhost:3004";
     const apiKey = process.env.MARKETPLACE_API_KEY || "dev-api-key-123";
-    
+
     let endpoint = `${marketplaceBaseUrl}/api/lots`;
     const headers: HeadersInit = {
       "Content-Type": "application/json",
@@ -150,7 +154,7 @@ export async function fetchLotsFrom3004(orgId?: string): Promise<Tender[]> {
     }
 
     const data = await response.json();
-    
+
     // Handle different response formats
     let lots: LotFromAPI[] = [];
     if (Array.isArray(data)) {
